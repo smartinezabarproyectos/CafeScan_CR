@@ -4,7 +4,6 @@ import logging
 import sys
 from pathlib import Path
 
-
 def get_logger(name: str, log_file: str | Path | None = None, level: int = logging.INFO) -> logging.Logger:
     logger = logging.getLogger(name)
     if logger.handlers:

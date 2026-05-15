@@ -9,7 +9,6 @@ REGISTRY = {
     "mobilenet":       ("src.models.classical.mobilenet",    "MobileNetV3"),
 }
 
-
 def build_model(name: str, **kwargs):
     if name not in REGISTRY:
         raise ModelNotFoundError(f"'{name}' not in registry. Available: {list(REGISTRY)}")
@@ -17,7 +16,6 @@ def build_model(name: str, **kwargs):
     module_path, class_name = REGISTRY[name]
     cls = getattr(importlib.import_module(module_path), class_name)
     return cls(**kwargs)
-
 
 def list_models(kind: str = "all") -> list[str]:
     return list(REGISTRY)

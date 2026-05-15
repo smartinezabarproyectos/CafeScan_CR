@@ -6,7 +6,6 @@ import torch
 
 from src.utils.io import load_checkpoint
 
-
 def export_onnx(
     model: torch.nn.Module,
     checkpoint_path: str | Path,
@@ -14,7 +13,6 @@ def export_onnx(
     img_size: int = 224,
     opset: int = 17,
 ) -> None:
-    """Export a trained model to ONNX format for deployment."""
     device = torch.device("cpu")
     load_checkpoint(model, checkpoint_path, device="cpu")
     model.to(device).eval()

@@ -5,16 +5,13 @@ from abc import ABC, abstractmethod
 import torch
 import torch.nn as nn
 
-
 class BaseModel(ABC, nn.Module):
-    """Contract all DL models must satisfy."""
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         ...
 
     def param_groups(self, lr: float, backbone_lr_mult: float = 0.1) -> list[dict]:
-        """Differential LR: backbone gets lr*mult, head gets lr."""
         backbone, head = self._backbone_and_head()
         return [
             {"params": backbone.parameters(), "lr": lr * backbone_lr_mult},
@@ -23,7 +20,6 @@ class BaseModel(ABC, nn.Module):
 
     @abstractmethod
     def _backbone_and_head(self) -> tuple[nn.Module, nn.Module]:
-        """Return (backbone, classification_head) for differential LR."""
         ...
 
     def freeze_backbone(self) -> None:

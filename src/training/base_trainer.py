@@ -12,9 +12,7 @@ from src.core.config import TrainingConfig
 from src.evaluation.metrics import compute_metrics, evaluate_loader
 from src.training.callbacks import EarlyStopping, ModelCheckpoint
 
-
 class BaseTrainer:
-    """Training loop shared by all classical DL models."""
 
     def __init__(
         self,
@@ -49,10 +47,6 @@ class BaseTrainer:
 
         self.history: list[dict] = []
         Path(config.results_dir).mkdir(parents=True, exist_ok=True)
-
-    # ------------------------------------------------------------------
-    # Public
-    # ------------------------------------------------------------------
 
     def fit(self) -> dict:
         print(f"\n{'='*60}")
@@ -100,7 +94,6 @@ class BaseTrainer:
                 print(f"\nEarly stopping at epoch {epoch} (best macro-F1={self.early_stop.best:.4f})")
                 break
 
-        # Load best and evaluate on val
         self.checkpoint.load_best(self.model)
         y_true, y_pred = evaluate_loader(self.model, self.val_loader, self.device)
         final_metrics = compute_metrics(y_true, y_pred)
@@ -110,7 +103,6 @@ class BaseTrainer:
         return final_metrics
 
     def fit_hpo(self, trial) -> float:
-        """Training loop with Optuna pruning support. Returns best val macro-F1."""
         import optuna
 
         best_f1 = 0.0
@@ -131,10 +123,6 @@ class BaseTrainer:
             )
 
         return best_f1
-
-    # ------------------------------------------------------------------
-    # Internal
-    # ------------------------------------------------------------------
 
     def _train_epoch(self) -> float:
         self.model.train()
@@ -162,16 +150,13 @@ class BaseTrainer:
         out_dir = Path(self.config.results_dir) / self.model_name
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        # History
         with open(out_dir / "history.json", "w") as f:
             json.dump(self.history, f, indent=2)
 
-        # Final metrics (exclude heavy 'report' string for JSON)
         summary = {k: v for k, v in metrics.items() if k != "report"}
         with open(out_dir / "val_metrics.json", "w") as f:
             json.dump(summary, f, indent=2)
 
-        # Full classification report
         with open(out_dir / "classification_report.txt", "w") as f:
             f.write(metrics["report"])
 

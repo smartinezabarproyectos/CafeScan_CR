@@ -1,15 +1,3 @@
-"""train_overnight.py — Corre todo el pipeline de entrenamiento sin intervencion.
-
-Configura la seccion CONFIG de abajo y ejecuta:
-    python scripts/train_overnight.py
-
-El script corre en orden:
-    1. HPO (opcional) para cada modelo configurado
-    2. Entrenamiento completo de todos los modelos con mejores params
-    3. Reporte de comparacion final
-
-Logs guardados en: results/overnight_YYYY-MM-DD_HH-MM.log
-"""
 from __future__ import annotations
 
 import json
@@ -20,47 +8,31 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# CONFIG — edita aqui antes de correr
-# ═══════════════════════════════════════════════════════════════════════════════
-
 CONFIG = {
-    # ── Datos ─────────────────────────────────────────────────────────────────
+
     "data_root":   "data/raw",
     "results_dir": "results",
     "seed":        42,
 
-    # ── HPO ───────────────────────────────────────────────────────────────────
-    # Modelos que reciben busqueda HPO independiente.
-    # Usa [] para saltar HPO y usar los hiperparametros por defecto.
     "hpo_models":   ["efficientnet_b0", "vit", "mobilenet"],
     "hpo_n_trials": 50,
     "hpo_epochs":   20,
     "hpo_db":       "results/optuna.db",
 
-    # ── Entrenamiento ─────────────────────────────────────────────────────────
-    # resnet50 hereda los mejores params de efficientnet_b0 si no tiene HPO propio.
     "models":  ["efficientnet_b0", "resnet50", "vit", "mobilenet"],
     "epochs":  40,
 
-    # Defaults si no se corre HPO (o para modelos sin HPO propio)
     "default_lr":              1e-4,
     "default_weight_decay":    1e-4,
     "default_batch_size":      64,
     "default_patience":        8,
     "default_label_smoothing": 0.1,
 
-    # ── Misc ──────────────────────────────────────────────────────────────────
     "skip_hpo": False,
 }
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# No edites debajo de esta linea
-# ═══════════════════════════════════════════════════════════════════════════════
-
 PROJECT_ROOT = Path(__file__).parent.parent
 PYTHON = sys.executable
-
 
 def setup_logging() -> logging.Logger:
     Path(CONFIG["results_dir"]).mkdir(parents=True, exist_ok=True)
@@ -79,7 +51,6 @@ def setup_logging() -> logging.Logger:
     log = logging.getLogger("overnight")
     log.info(f"Log guardado en: {log_file}")
     return log
-
 
 def run_cmd(cmd: list[str], log: logging.Logger) -> int:
     env = {"PYTHONUNBUFFERED": "1", **{k: v for k, v in __import__("os").environ.items()}}
@@ -101,7 +72,6 @@ def run_cmd(cmd: list[str], log: logging.Logger) -> int:
     proc.wait()
     return proc.returncode
 
-
 def load_hpo_from_db(model: str, log: logging.Logger) -> dict | None:
     try:
         import optuna
@@ -122,7 +92,6 @@ def load_hpo_from_db(model: str, log: logging.Logger) -> dict | None:
     except Exception as e:
         log.warning(f"No se pudo cargar HPO de '{model}' desde DB: {e}")
         return None
-
 
 def run_hpo(model: str, log: logging.Logger) -> dict | None:
     log.info(f"\n{'='*60}")
@@ -159,7 +128,6 @@ def run_hpo(model: str, log: logging.Logger) -> dict | None:
         log.error(f"No se pudo leer el estudio de Optuna: {e}")
         return None
 
-
 def run_training(models: list[str], params: dict, epochs: int, log: logging.Logger) -> bool:
     log.info(f"\n{'='*60}")
     log.info(f"TRAINING: {models} | {epochs} epochs")
@@ -185,7 +153,6 @@ def run_training(models: list[str], params: dict, epochs: int, log: logging.Logg
         return False
     return True
 
-
 def _resolve_params(model: str, best_params: dict[str, dict]) -> dict:
     if model in best_params and best_params[model]:
         return best_params[model]
@@ -193,7 +160,6 @@ def _resolve_params(model: str, best_params: dict[str, dict]) -> dict:
     if fallback:
         return fallback
     return {}
-
 
 def main():
     log = setup_logging()
@@ -207,7 +173,6 @@ def main():
 
     best_params: dict[str, dict] = {}
 
-    # ── Fase 0: Cargar HPO ya existentes del DB ───────────────────────────────
     log.info("\n\n>>> FASE 0: CARGANDO HPO EXISTENTES DEL DB")
     for model in CONFIG["models"]:
         if model not in CONFIG["hpo_models"]:
@@ -217,7 +182,6 @@ def main():
             else:
                 log.info(f"  Sin HPO previo para {model} — usara defaults o hereda de efficientnet_b0")
 
-    # ── Fase 1: HPO para modelos pendientes ───────────────────────────────────
     if not CONFIG["skip_hpo"] and CONFIG["hpo_models"]:
         log.info("\n\n>>> FASE 1: HPO")
         for model in CONFIG["hpo_models"]:
@@ -226,7 +190,6 @@ def main():
     else:
         log.info("\n\n>>> FASE 1: HPO omitido — usando hiperparametros por defecto")
 
-    # ── Fase 2: Entrenamiento (uno por uno con sus propios params) ────────────
     log.info("\n\n>>> FASE 2: ENTRENAMIENTO")
     all_ok = True
     for model in CONFIG["models"]:
@@ -240,7 +203,6 @@ def main():
     if all_ok:
         log.info("Todos los modelos entrenados correctamente.")
 
-    # ── Fase 3: Reporte final ─────────────────────────────────────────────────
     log.info("\n\n>>> FASE 3: REPORTE FINAL")
     cmd = [PYTHON, "-c", f"""
 import sys; sys.path.insert(0, '.')
@@ -267,7 +229,6 @@ else:
     log.info(f"Tiempo total: {h}h {m}m {s}s")
     log.info(f"Fin: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log.info(f"{'='*60}")
-
 
 if __name__ == "__main__":
     main()

@@ -1,8 +1,3 @@
-"""FastAPI inference endpoint.
-
-Usage:
-    uvicorn src.deployment.api:app --reload
-"""
 from __future__ import annotations
 
 import io
@@ -19,7 +14,6 @@ app = FastAPI(title="QuantumCafe-CR API", version="1.0")
 
 _PREDICTOR: Predictor | None = None
 
-
 def get_predictor() -> Predictor:
     global _PREDICTOR
     if _PREDICTOR is None:
@@ -28,11 +22,9 @@ def get_predictor() -> Predictor:
         _PREDICTOR = Predictor(model, ckpt)
     return _PREDICTOR
 
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):

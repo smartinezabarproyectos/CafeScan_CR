@@ -6,18 +6,11 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
-
 _IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp"}
-_SAMPLE_SIZE = 500          # images per dataset for statistics
-_RESIZE = (128, 128)        # standardize before feature extraction
-
-
-# ---------------------------------------------------------------------------
-# Feature extraction
-# ---------------------------------------------------------------------------
+_SAMPLE_SIZE = 500
+_RESIZE = (128, 128)
 
 def _load_sample(paths: list[Path], n: int, seed: int = 42) -> np.ndarray:
-    """Load n random images, resize, return (n, 3*H*W) float32 array."""
     rng = np.random.default_rng(seed)
     chosen = rng.choice(len(paths), size=min(n, len(paths)), replace=False)
     feats = []
@@ -32,17 +25,10 @@ def _load_sample(paths: list[Path], n: int, seed: int = 42) -> np.ndarray:
             pass
     return np.stack(feats) if feats else np.empty((0, 3 * _RESIZE[0] * _RESIZE[1]))
 
-
 def _collect_paths(root: Path) -> list[Path]:
     return [p for p in root.rglob("*") if p.suffix.lower() in _IMG_EXTS]
 
-
-# ---------------------------------------------------------------------------
-# Statistics
-# ---------------------------------------------------------------------------
-
 def _rgb_stats(paths: list[Path], n: int = _SAMPLE_SIZE) -> dict:
-    """Per-channel mean and std from a random sample."""
     rng = np.random.default_rng(0)
     chosen = rng.choice(len(paths), size=min(n, len(paths)), replace=False)
     means = {"r": [], "g": [], "b": []}
@@ -62,13 +48,7 @@ def _rgb_stats(paths: list[Path], n: int = _SAMPLE_SIZE) -> dict:
         for ch, v in means.items()
     }
 
-
-# ---------------------------------------------------------------------------
-# Maximum Mean Discrepancy (linear kernel, unbiased estimator)
-# ---------------------------------------------------------------------------
-
 def _mmd_linear(X: np.ndarray, Y: np.ndarray) -> float:
-    """Unbiased MMD² with linear kernel — O(n²) but fast on flat features."""
     n, m = len(X), len(Y)
     if n == 0 or m == 0:
         return float("nan")
@@ -78,20 +58,11 @@ def _mmd_linear(X: np.ndarray, Y: np.ndarray) -> float:
     XY = (X @ Y.T).mean()
     return float(XX - 2 * XY + YY)
 
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
 def run_drift_analysis(
     data_root: str | Path,
     sample_size: int = _SAMPLE_SIZE,
     output_dir: str | Path | None = None,
 ) -> pd.DataFrame:
-    """Compare RGB statistics and MMD between BRACOL, JMuBEN, JMuBEN2.
-
-    Returns a DataFrame with pairwise MMD scores and per-dataset RGB stats.
-    """
     root = Path(data_root)
     datasets = {
         "bracol":  root / "bracol" / "coffee-datasets" / "coffee-datasets" / "leaf" / "images",
@@ -107,7 +78,6 @@ def run_drift_analysis(
             paths[name] = p
             print(f"  {name}: {len(p)} images found")
 
-    # RGB stats
     print("\nComputing RGB statistics...")
     stats_rows = []
     for name, p in paths.items():
@@ -121,7 +91,6 @@ def run_drift_analysis(
     stats_df = pd.DataFrame(stats_rows).set_index("dataset")
     print(stats_df.round(4).to_string())
 
-    # MMD
     print("\nExtracting features for MMD (this may take a minute)...")
     features = {}
     for name, p in paths.items():

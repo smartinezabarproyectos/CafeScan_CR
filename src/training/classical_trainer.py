@@ -9,13 +9,11 @@ from src.models.base_models import BaseModel
 from src.training.base_trainer import BaseTrainer
 from src.training.losses import LabelSmoothingCrossEntropy, compute_class_weights_from_records
 
-
 def build_trainer(
     model: BaseModel,
     model_name: str,
     config: TrainingConfig,
 ) -> BaseTrainer:
-    """Wire up data loaders, optimizer, scheduler, and loss for a classical model."""
 
     train_ds, val_ds, test_ds = stratified_split(
         config.data_root,
@@ -24,12 +22,10 @@ def build_trainer(
         size=config.img_size,
     )
 
-    # Print split summary
     for name, ds in [("train", train_ds), ("val", val_ds), ("test", test_ds)]:
         s = split_summary(ds)
         print(f"{name}: {s['total']} samples | {s['by_class']}")
 
-    # Class weights from train split
     weight = None
     if config.use_weighted_loss:
         weight = compute_class_weights_from_records(
@@ -64,7 +60,6 @@ def build_trainer(
         weight_decay=config.weight_decay,
     )
 
-    # Cosine schedule with linear warmup
     steps_per_epoch = len(train_loader)
     warmup_steps = config.warmup_epochs * steps_per_epoch
     total_steps = config.epochs * steps_per_epoch

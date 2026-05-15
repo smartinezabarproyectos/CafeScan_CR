@@ -1,8 +1,3 @@
-"""CaféScan — Streamlit web app for coffee leaf disease detection.
-
-Usage:
-    streamlit run src/deployment/streamlit_app.py
-"""
 from __future__ import annotations
 
 import sys
@@ -21,12 +16,9 @@ from src.data.label_mapper import UNIFIED_LABELS
 from src.deployment.inference import Predictor
 from src.utils.io import load_checkpoint
 
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
 CKPT_DIR   = Path("results/checkpoints")
 RESULTS_DIR = Path("results")
-BEST_MODEL = "vit"  # recommended default
+BEST_MODEL = "vit"
 
 MODEL_METRICS = {
     "vit":             {"name": "ViT-Small",        "macro_f1": 0.9965, "accuracy": 0.9971, "params": "22M",  "badge": "⭐ Recomendado"},
@@ -78,25 +70,16 @@ CLASS_INFO = {
     },
 }
 
-
-# ---------------------------------------------------------------------------
-# Model caching
-# ---------------------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
 def load_predictor(model_name: str) -> Predictor:
     model = build_model(model_name, num_classes=5, pretrained=False)
     ckpt  = CKPT_DIR / f"{model_name}_best.pt"
     return Predictor(model, ckpt)
 
-
 def available_models() -> list[str]:
     order = ["vit", "efficientnet_b0", "mobilenet", "resnet50"]
     return [m for m in order if (CKPT_DIR / f"{m}_best.pt").exists()]
 
-
-# ---------------------------------------------------------------------------
-# Grad-CAM (inline, no external deps beyond cv2)
-# ---------------------------------------------------------------------------
 def _get_gradcam_layer(model, model_name: str):
     if model_name == "efficientnet_b0":
         blocks = list(model.backbone.children())
@@ -109,7 +92,6 @@ def _get_gradcam_layer(model, model_name: str):
     elif model_name == "resnet50":
         return model.backbone.layer4
     return None
-
 
 def run_gradcam(model_name: str, pil_image: Image.Image, class_idx: int) -> np.ndarray | None:
     try:
@@ -159,10 +141,6 @@ def run_gradcam(model_name: str, pil_image: Image.Image, class_idx: int) -> np.n
     except Exception:
         return None
 
-
-# ---------------------------------------------------------------------------
-# UI helpers
-# ---------------------------------------------------------------------------
 def class_badge(class_name: str) -> None:
     info = CLASS_INFO[class_name]
     st.markdown(
@@ -173,7 +151,6 @@ def class_badge(class_name: str) -> None:
         {info['label']}</span></div>""",
         unsafe_allow_html=True,
     )
-
 
 def prob_bars(probabilities: dict, pred_class: str) -> None:
     for cls, prob in sorted(probabilities.items(), key=lambda x: -x[1]):
@@ -192,7 +169,6 @@ def prob_bars(probabilities: dict, pred_class: str) -> None:
             unsafe_allow_html=True,
         )
 
-
 def model_card(model_name: str) -> None:
     m = MODEL_METRICS.get(model_name, {})
     st.markdown(
@@ -204,10 +180,6 @@ def model_card(model_name: str) -> None:
         unsafe_allow_html=True,
     )
 
-
-# ---------------------------------------------------------------------------
-# Page layout
-# ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="CaféScan — Deteccion de Enfermedades en Cafe",
     page_icon="☕",
@@ -215,7 +187,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# -- Sidebar --
 with st.sidebar:
     st.markdown("## ☕ CaféScan")
     st.caption("Deteccion de enfermedades en hojas de cafe mediante Deep Learning")
@@ -251,12 +222,10 @@ with st.sidebar:
     for cls, info in CLASS_INFO.items():
         st.caption(f"{info['icon']} {info['label']}")
 
-# -- Header --
 st.markdown("# ☕ CaféScan")
 st.markdown("**Deteccion de enfermedades en hojas de cafe** — sube una imagen para clasificarla.")
 st.divider()
 
-# -- Upload --
 col_up, col_cam = st.columns([3, 1])
 with col_up:
     uploaded = st.file_uploader(
@@ -273,9 +242,6 @@ if uploaded:
 elif camera:
     pil_image = Image.open(camera).convert("RGB")
 
-# ---------------------------------------------------------------------------
-# Single-model prediction
-# ---------------------------------------------------------------------------
 if pil_image and not compare_mode:
     col_img, col_res = st.columns([1, 1], gap="large")
 
@@ -304,7 +270,6 @@ if pil_image and not compare_mode:
         st.markdown(f"**Descripcion:** {info['description']}")
         st.info(f"**Recomendacion:** {info['recommendation']}", icon="💡")
 
-    # Grad-CAM
     if gradcam_on:
         st.divider()
         st.markdown("### Mapa de activacion Grad-CAM")
@@ -319,9 +284,6 @@ if pil_image and not compare_mode:
         else:
             st.warning("No se pudo calcular Grad-CAM para este modelo.")
 
-# ---------------------------------------------------------------------------
-# Comparison mode — all models on same image
-# ---------------------------------------------------------------------------
 if pil_image and compare_mode:
     st.markdown("### Comparacion de modelos")
     st.caption("Misma imagen clasificada por los cuatro modelos.")
@@ -353,7 +315,6 @@ if pil_image and compare_mode:
                 unsafe_allow_html=True,
             )
 
-    # Agreement check
     preds = [r["class"] for r in results_all.values()]
     if len(set(preds)) == 1:
         st.success(f"✅ Todos los modelos coinciden: **{CLASS_INFO[preds[0]]['label']}**")
@@ -361,7 +322,6 @@ if pil_image and compare_mode:
         majority = max(set(preds), key=preds.count)
         st.warning(f"⚠️ Los modelos no coinciden. Mayoria: **{CLASS_INFO[majority]['label']}** ({preds.count(majority)}/{len(preds)}). Se recomienda confiar en ViT.")
 
-# -- Empty state --
 if not pil_image:
     st.markdown(
         """<div style="text-align:center;padding:60px 20px;color:#aaa">

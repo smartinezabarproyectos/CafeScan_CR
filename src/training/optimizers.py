@@ -3,17 +3,13 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-
 def build_adamw(model: nn.Module, lr: float, backbone_lr_mult: float, weight_decay: float):
-    """AdamW with differential LR for backbone vs head."""
     return torch.optim.AdamW(
         model.param_groups(lr, backbone_lr_mult),
         weight_decay=weight_decay,
     )
 
-
 def build_cosine_schedule(optimizer, epochs: int, steps_per_epoch: int, warmup_epochs: int = 2):
-    """Cosine LR decay with linear warmup, per-step."""
     warmup_steps = warmup_epochs * steps_per_epoch
     total_steps = epochs * steps_per_epoch
 

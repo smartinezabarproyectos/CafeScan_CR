@@ -1,23 +1,13 @@
-"""Train a single classical DL model.
-
-Usage:
-    python scripts/train.py --model efficientnet_b0
-    python scripts/train.py --model resnet50 --epochs 20 --batch_size 16
-    python scripts/train.py --model vit --lr 5e-5
-    python scripts/train.py --model mobilenet
-"""
 from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
 
-# Allow running from project root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.core.config import TrainingConfig
 from src.utils.seed import set_seed
-
 
 MODEL_REGISTRY = {
     "efficientnet_b0": ("src.models.classical.efficientnet", "EfficientNetB0"),
@@ -25,7 +15,6 @@ MODEL_REGISTRY = {
     "vit":             ("src.models.classical.vit",          "ViTSmall"),
     "mobilenet":       ("src.models.classical.mobilenet",    "MobileNetV3"),
 }
-
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -38,7 +27,6 @@ def parse_args():
     p.add_argument("--seed",        type=int,   default=42)
     p.add_argument("--no_pretrain", action="store_true")
     return p.parse_args()
-
 
 def main():
     args = parse_args()
@@ -53,7 +41,6 @@ def main():
         seed=args.seed,
     )
 
-    # Dynamically import model
     module_path, class_name = MODEL_REGISTRY[args.model]
     import importlib
     module = importlib.import_module(module_path)
@@ -64,7 +51,6 @@ def main():
     trainer, test_ds = build_trainer(model, args.model, config)
     trainer.fit()
 
-    # Test set evaluation
     import torch
     from torch.utils.data import DataLoader
     from src.evaluation.metrics import compute_metrics, evaluate_loader
@@ -86,7 +72,6 @@ def main():
     print(f"  Accuracy  : {test_metrics['accuracy']:.4f}")
     print(f"  Macro-F1  : {test_metrics['macro_f1']:.4f}")
     print(test_metrics["report"])
-
 
 if __name__ == "__main__":
     main()

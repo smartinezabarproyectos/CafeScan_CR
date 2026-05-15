@@ -8,14 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-
 class GradCAM:
-    """Gradient-weighted Class Activation Mapping for CNN-based models.
-
-    Usage:
-        cam = GradCAM(model, target_layer=model.backbone.blocks[-1])
-        heatmap = cam(img_tensor, class_idx=2)
-    """
 
     def __init__(self, model: nn.Module, target_layer: nn.Module):
         self.model = model
@@ -43,7 +36,7 @@ class GradCAM:
         self.model.zero_grad()
         logits[0, class_idx].backward()
 
-        grads = self.gradients.mean(dim=(2, 3), keepdim=True)  # GAP over spatial dims
+        grads = self.gradients.mean(dim=(2, 3), keepdim=True)
         cam = (grads * self.activations).sum(dim=1).squeeze()
         cam = torch.relu(cam).cpu().numpy()
         cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)

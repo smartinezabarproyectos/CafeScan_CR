@@ -6,19 +6,17 @@ from pathlib import Path
 from PIL import Image
 from torch.utils.data import Dataset
 
-
 class BaseDataset(ABC, Dataset):
-    """Contract all dataset loaders must satisfy."""
 
     def __init__(self, root: str | Path, transform=None):
         self.root = Path(root)
         self.transform = transform
-        self.samples: list[tuple[Path, int]] = []  # (img_path, label_idx)
+        self.samples: list[tuple[Path, int]] = []
         self._load()
 
     @abstractmethod
     def _load(self) -> None:
-        """Populate self.samples."""
+        pass
 
     def __len__(self) -> int:
         return len(self.samples)

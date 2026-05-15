@@ -4,9 +4,7 @@ from pathlib import Path
 
 import torch
 
-
 class EarlyStopping:
-    """Stop training when monitored metric stops improving."""
 
     def __init__(self, patience: int = 8, min_delta: float = 1e-4, mode: str = "max"):
         self.patience = patience
@@ -17,7 +15,6 @@ class EarlyStopping:
         self.triggered = False
 
     def step(self, value: float) -> bool:
-        """Return True if training should stop."""
         improved = (
             value > self.best + self.min_delta
             if self.mode == "max"
@@ -32,9 +29,7 @@ class EarlyStopping:
                 self.triggered = True
         return self.triggered
 
-
 class ModelCheckpoint:
-    """Save best model by monitored metric."""
 
     def __init__(self, checkpoint_dir: str, model_name: str, mode: str = "max"):
         self.dir = Path(checkpoint_dir)
@@ -44,7 +39,6 @@ class ModelCheckpoint:
         self.best = float("-inf") if mode == "max" else float("inf")
 
     def step(self, value: float, model: torch.nn.Module) -> bool:
-        """Save checkpoint if value is best so far. Returns True if saved."""
         improved = value > self.best if self.mode == "max" else value < self.best
         if improved:
             self.best = value

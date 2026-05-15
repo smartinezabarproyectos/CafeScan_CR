@@ -1,18 +1,3 @@
-"""final_eval.py — Evaluacion completa en test set para todos los modelos.
-
-Genera:
-  - results/<model>/test_metrics.json
-  - results/<model>/confusion_matrix.png
-  - results/<model>/gradcam_<class>.png  (una imagen por clase)
-  - results/figures/test_comparison.png
-  - results/figures/test_per_class_f1.png
-  - results/tables/test_summary.csv
-
-Usage:
-    python scripts/final_eval.py
-    python scripts/final_eval.py --models efficientnet_b0 vit
-    python scripts/final_eval.py --no_gradcam
-"""
 from __future__ import annotations
 
 import argparse
@@ -23,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import matplotlib
-matplotlib.use("Agg")  # non-interactive backend — saves figures without opening windows
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -40,40 +25,27 @@ from src.evaluation.metrics import compute_metrics, evaluate_loader
 from src.utils.io import load_checkpoint
 from src.utils.seed import set_seed
 
-
 CKPT_DIR = Path("results/checkpoints")
 RESULTS_DIR = Path("results")
 FIG_DIR = RESULTS_DIR / "figures"
 TABLE_DIR = RESULTS_DIR / "tables"
 
-
-# ---------------------------------------------------------------------------
-# Grad-CAM target layer per model
-# ---------------------------------------------------------------------------
-
 def _get_gradcam_layer(model, model_name: str):
-    """Return the last conv/feature layer suitable for Grad-CAM."""
     if model_name == "efficientnet_b0":
-        # Last block before global pooling
+
         blocks = list(model.backbone.children())
         for layer in reversed(blocks):
             if any(isinstance(m, torch.nn.Conv2d) for m in layer.modules()):
                 return layer
         return blocks[-1]
     elif model_name == "mobilenet":
-        # MobileNetV3: use last inverted residual block — avoids the inplace
-        # HardSwish issue that lives in conv_head / act2 expansion layers
+
         return model.backbone.blocks[-1]
     elif model_name == "resnet50":
         return model.backbone.layer4
     elif model_name == "vit":
-        return None  # attention-based; standard Grad-CAM not applicable
+        return None
     return None
-
-
-# ---------------------------------------------------------------------------
-# Grad-CAM implementation (inline to avoid import of deleted quantum_viz)
-# ---------------------------------------------------------------------------
 
 class _GradCAM:
     def __init__(self, model, target_layer):
@@ -84,11 +56,11 @@ class _GradCAM:
         target_layer.register_full_backward_hook(self._bwd_hook)
 
     def _fwd_hook(self, m, inp, out):
-        # clone avoids issues when the layer output is a view modified inplace downstream
+
         self.activations = out.detach().clone()
 
     def _bwd_hook(self, m, gin, gout):
-        # clone prevents "view modified inplace" errors in models with HardSwish / inplace ops
+
         self.gradients = gout[0].detach().clone()
 
     @torch.enable_grad()
@@ -130,13 +102,7 @@ class _GradCAM:
             plt.savefig(save_path, dpi=150, bbox_inches="tight")
         plt.close()
 
-
-# ---------------------------------------------------------------------------
-# Sample one image per class from test_ds
-# ---------------------------------------------------------------------------
-
 def _sample_per_class(test_ds, n_classes: int) -> dict[int, torch.Tensor]:
-    """Return {class_idx: image_tensor} — first found per class."""
     from src.data.transforms import test_transforms as tf
     transform = tf(224)
     samples: dict[int, torch.Tensor] = {}
@@ -147,11 +113,6 @@ def _sample_per_class(test_ds, n_classes: int) -> dict[int, torch.Tensor]:
         if len(samples) == n_classes:
             break
     return samples
-
-
-# ---------------------------------------------------------------------------
-# Per-model evaluation
-# ---------------------------------------------------------------------------
 
 def eval_model(
     model_name: str,
@@ -179,14 +140,12 @@ def eval_model(
     out_dir = RESULTS_DIR / model_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Save test metrics
     summary = {k: v for k, v in metrics.items() if k != "report"}
     with open(out_dir / "test_metrics.json", "w") as f:
         json.dump(summary, f, indent=2)
     with open(out_dir / "test_classification_report.txt", "w", encoding="utf-8") as f:
         f.write(metrics["report"])
 
-    # Confusion matrix
     plot_confusion_matrix(
         y_true, y_pred,
         title=f"{model_name} — Test Set",
@@ -199,7 +158,6 @@ def eval_model(
     print(f"  Weighted-F1: {metrics['weighted_f1']:.4f}")
     print(f"\n{metrics['report']}")
 
-    # Grad-CAM
     if run_gradcam:
         target_layer = _get_gradcam_layer(model, model_name)
         if target_layer is not None:
@@ -226,11 +184,6 @@ def eval_model(
         **{f"f1_{UNIFIED_LABELS[i]}": v for i, v in enumerate(metrics["per_class_f1"])},
     }
 
-
-# ---------------------------------------------------------------------------
-# Comparison figures
-# ---------------------------------------------------------------------------
-
 def _plot_test_comparison(df: pd.DataFrame) -> None:
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     metrics = ["accuracy", "macro_f1", "weighted_f1"]
@@ -248,7 +201,6 @@ def _plot_test_comparison(df: pd.DataFrame) -> None:
     plt.savefig(FIG_DIR / "test_comparison.png", dpi=150, bbox_inches="tight")
     plt.close()
     print(f"\nFigura guardada: {FIG_DIR / 'test_comparison.png'}")
-
 
 def _plot_per_class_f1(df: pd.DataFrame) -> None:
     cls_cols = [f"f1_{c}" for c in UNIFIED_LABELS]
@@ -273,17 +225,7 @@ def _plot_per_class_f1(df: pd.DataFrame) -> None:
     plt.close()
     print(f"Figura guardada: {FIG_DIR / 'test_per_class_f1.png'}")
 
-
-# ---------------------------------------------------------------------------
-# Overfitting check: val vs test
-# ---------------------------------------------------------------------------
-
 def _check_overfitting(test_df: pd.DataFrame, threshold: float = 0.05) -> None:
-    """Load val_metrics.json for each model and compare with test macro_f1.
-
-    Flags models where val - test gap exceeds threshold (default 5 pp).
-    Saves results/tables/val_vs_test.csv.
-    """
     print("\n" + "="*60)
     print("OVERFITTING CHECK — Val vs Test Macro-F1")
     print("="*60)
@@ -317,11 +259,6 @@ def _check_overfitting(test_df: pd.DataFrame, threshold: float = 0.05) -> None:
         TABLE_DIR.mkdir(parents=True, exist_ok=True)
         cmp_df.to_csv(cmp_path, index=False)
         print(f"\n  Tabla guardada: {cmp_path}")
-
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 def main():
     p = argparse.ArgumentParser(description="Final test-set evaluation for all models")
@@ -371,29 +308,24 @@ def main():
 
     df = pd.DataFrame(rows).sort_values("macro_f1", ascending=False)
 
-    # Save CSV summary
     TABLE_DIR.mkdir(parents=True, exist_ok=True)
     csv_path = TABLE_DIR / "test_summary.csv"
     df.to_csv(csv_path, index=False)
     print(f"\nCSV guardado: {csv_path}")
 
-    # Print final table
     print("\n" + "="*60)
     print("FINAL TEST SET RESULTS")
     print("="*60)
     cols = ["model", "accuracy", "macro_f1", "weighted_f1", "macro_precision", "macro_recall"]
     print(df[cols].round(4).to_string(index=False))
 
-    # Val vs Test overfitting check
     _check_overfitting(df)
 
-    # Figures
     _plot_test_comparison(df)
     _plot_per_class_f1(df)
 
     print("\n[OK] Evaluacion completa.")
     print(f"  Resultados en: {RESULTS_DIR}/")
-
 
 if __name__ == "__main__":
     main()

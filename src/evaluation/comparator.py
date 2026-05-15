@@ -9,9 +9,7 @@ import pandas as pd
 
 from src.data.label_mapper import UNIFIED_LABELS
 
-
 def load_all_results(results_dir: str | Path) -> pd.DataFrame:
-    """Load val_metrics.json from every model subfolder into a DataFrame."""
     root = Path(results_dir)
     rows = []
     for model_dir in sorted(root.iterdir()):
@@ -28,13 +26,12 @@ def load_all_results(results_dir: str | Path) -> pd.DataFrame:
             "macro_precision": m.get("macro_precision", 0),
             "macro_recall": m.get("macro_recall", 0),
         }
-        # per-class F1
+
         for i, cls in enumerate(UNIFIED_LABELS):
             pcf = m.get("per_class_f1", [])
             row[f"f1_{cls}"] = pcf[i] if i < len(pcf) else 0.0
         rows.append(row)
     return pd.DataFrame(rows).set_index("model")
-
 
 def plot_comparison(df: pd.DataFrame, save_path: str | Path | None = None) -> None:
     metrics = ["accuracy", "macro_f1", "weighted_f1"]
@@ -53,7 +50,6 @@ def plot_comparison(df: pd.DataFrame, save_path: str | Path | None = None) -> No
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.show()
-
 
 def plot_per_class_f1(df: pd.DataFrame, save_path: str | Path | None = None) -> None:
     cls_cols = [f"f1_{c}" for c in UNIFIED_LABELS]
@@ -77,7 +73,6 @@ def plot_per_class_f1(df: pd.DataFrame, save_path: str | Path | None = None) -> 
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.show()
-
 
 def print_summary_table(df: pd.DataFrame) -> None:
     cols = ["accuracy", "macro_f1", "weighted_f1", "macro_precision", "macro_recall"]

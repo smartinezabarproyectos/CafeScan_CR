@@ -8,16 +8,7 @@ from .bracol import BracolDataset
 from .jmuben import JMuBENDataset
 from .label_mapper import UNIFIED_LABELS
 
-
 def build_unified_dataset(data_root: str | Path, transform=None) -> ConcatDataset:
-    """Combine BRACOL + JMuBEN + JMuBEN2 into one dataset.
-
-    Expected structure:
-        data_root/
-            bracol/
-            jmuben/
-            jmuben2/
-    """
     root = Path(data_root)
     parts = []
 
@@ -34,7 +25,6 @@ def build_unified_dataset(data_root: str | Path, transform=None) -> ConcatDatase
         raise FileNotFoundError(f"No datasets found under {root}")
 
     return ConcatDataset(parts)
-
 
 def class_names() -> list[str]:
     return UNIFIED_LABELS

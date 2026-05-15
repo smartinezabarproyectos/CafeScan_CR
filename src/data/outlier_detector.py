@@ -12,12 +12,10 @@ from .bracol import BracolDataset
 from .jmuben import JMuBENDataset
 from .label_mapper import UNIFIED_LABELS
 
-# Thresholds
-BLUR_THRESHOLD = 25.0       # Laplacian variance — below = blurry (calibrated on corpus p10)
-MIN_DIM_PX = 64             # minimum width or height in pixels
-MIN_FILE_BYTES = 2_048      # below = likely corrupt / placeholder
-MAX_DARK_MEAN = 20.0        # grayscale mean — below = nearly black
-
+BLUR_THRESHOLD = 25.0
+MIN_DIM_PX = 64
+MIN_FILE_BYTES = 2_048
+MAX_DARK_MEAN = 20.0
 
 @dataclass
 class OutlierReport:
@@ -62,7 +60,6 @@ class OutlierReport:
             records.append({"path": path, "reasons": ",".join(reasons)})
         return pd.DataFrame(records)
 
-
 def _collect_all_paths(data_root: Path) -> list[Path]:
     paths = []
     bracol = BracolDataset(data_root / "bracol")
@@ -73,7 +70,6 @@ def _collect_all_paths(data_root: Path) -> list[Path]:
             ds = JMuBENDataset(sub)
             paths.extend(p for p, _ in ds.samples)
     return paths
-
 
 def detect_outliers(
     data_root: str | Path,
@@ -93,7 +89,6 @@ def detect_outliers(
         if verbose and i % 5000 == 0:
             print(f"  [{i}/{len(paths)}] scanning...")
 
-        # File size check
         try:
             if img_path.stat().st_size < min_bytes:
                 report.tiny_file.append(path_str)
@@ -102,7 +97,6 @@ def detect_outliers(
             report.unreadable.append(path_str)
             continue
 
-        # OpenCV load for blur and brightness
         gray = cv2.imread(path_str, cv2.IMREAD_GRAYSCALE)
         if gray is None:
             report.unreadable.append(path_str)
@@ -110,15 +104,12 @@ def detect_outliers(
 
         h, w = gray.shape
 
-        # Dimension check
         if w < min_dim or h < min_dim:
             report.too_small.append(path_str)
 
-        # Brightness check
         if gray.mean() < max_dark:
             report.too_dark.append(path_str)
 
-        # Blur check (Laplacian variance)
         lap_var = cv2.Laplacian(gray, cv2.CV_64F).var()
         if lap_var < blur_threshold:
             report.blurry.append(path_str)

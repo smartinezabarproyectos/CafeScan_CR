@@ -9,7 +9,6 @@ from sklearn.metrics import confusion_matrix
 
 from src.data.label_mapper import UNIFIED_LABELS
 
-
 def plot_confusion_matrix(
     y_true: list[int],
     y_pred: list[int],

@@ -1,9 +1,3 @@
-"""Experiment runner — trains all models sequentially and saves a comparison table.
-
-Usage:
-    python -m src.experiments.runner --models efficientnet_b0 resnet50
-    python -m src.experiments.runner --models efficientnet_b0 --epochs 50 --lr 3e-4 --batch_size 32
-"""
 from __future__ import annotations
 
 import argparse
@@ -18,9 +12,7 @@ from src.evaluation.comparator import load_all_results, plot_comparison, plot_pe
 from src.training.classical_trainer import build_trainer
 from src.utils.seed import set_seed
 
-
 ALL_MODELS = list_models()
-
 
 def run_model(name: str, config: TrainingConfig) -> None:
     from src.core.registry import build_model
@@ -28,7 +20,6 @@ def run_model(name: str, config: TrainingConfig) -> None:
     model = build_model(name, num_classes=config.num_classes, pretrained=True)
     trainer, _ = build_trainer(model, name, config)
     trainer.fit()
-
 
 def main():
     p = argparse.ArgumentParser(description="Train QuantumCafe-CR models")
@@ -79,7 +70,6 @@ def main():
         fig_dir.mkdir(parents=True, exist_ok=True)
         plot_comparison(df, save_path=fig_dir / "model_comparison.png")
         plot_per_class_f1(df, save_path=fig_dir / "per_class_f1.png")
-
 
 if __name__ == "__main__":
     main()

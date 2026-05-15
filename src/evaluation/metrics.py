@@ -13,7 +13,6 @@ from sklearn.metrics import (
 
 from src.data.label_mapper import UNIFIED_LABELS
 
-
 def compute_metrics(
     y_true: list[int] | np.ndarray,
     y_pred: list[int] | np.ndarray,
@@ -33,10 +32,8 @@ def compute_metrics(
         "report":           classification_report(y_true, y_pred, target_names=class_names, zero_division=0),
     }
 
-
 @torch.no_grad()
 def evaluate_loader(model, loader, device) -> tuple[list[int], list[int]]:
-    """Run model over a DataLoader, return (y_true, y_pred)."""
     model.eval()
     all_true, all_pred = [], []
     for imgs, labels in loader:

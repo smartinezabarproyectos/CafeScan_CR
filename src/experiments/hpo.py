@@ -1,11 +1,3 @@
-"""Optuna HPO for QuantumCafe-CR models.
-
-Runs Bayesian optimization (TPE sampler) with Hyperband pruning to find the
-best hyperparameters for a given model.
-
-Usage:
-    python -m src.experiments.hpo --model efficientnet_b0 --n_trials 30 --hpo_epochs 15
-"""
 from __future__ import annotations
 
 import argparse
@@ -24,14 +16,8 @@ from src.core.registry import build_model, list_models
 from src.training.classical_trainer import build_trainer
 from src.utils.seed import set_seed
 
-# Suppress Optuna's verbose INFO logs — only WARNING and above
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-# Search space definition: (kind, *args)
-#   log_float -> suggest_float(..., log=True)
-#   float     -> suggest_float(...)
-#   int       -> suggest_int(...)
-#   categorical -> suggest_categorical(..., choices)
 _SEARCH_SPACE: dict[str, tuple] = {
     "lr":               ("log_float", 1e-5, 1e-2),
     "weight_decay":     ("log_float", 1e-5, 1e-2),
@@ -40,7 +26,6 @@ _SEARCH_SPACE: dict[str, tuple] = {
     "backbone_lr_mult": ("float", 0.01, 0.5),
     "warmup_epochs":    ("int", 1, 5),
 }
-
 
 def _suggest_params(trial: optuna.Trial) -> dict:
     params = {}
@@ -56,9 +41,7 @@ def _suggest_params(trial: optuna.Trial) -> dict:
             params[name] = trial.suggest_categorical(name, args[0])
     return params
 
-
 def make_objective(model_name: str, data_root: str, hpo_epochs: int, seed: int):
-    """Return an Optuna objective function for the given model."""
 
     def objective(trial: optuna.Trial) -> float:
         params = _suggest_params(trial)
@@ -72,19 +55,17 @@ def make_objective(model_name: str, data_root: str, hpo_epochs: int, seed: int):
             label_smoothing=params["label_smoothing"],
             backbone_lr_mult=params["backbone_lr_mult"],
             warmup_epochs=params["warmup_epochs"],
-            patience=hpo_epochs + 1,   # disable early stopping during HPO
+            patience=hpo_epochs + 1,
             checkpoint_dir="results/hpo_tmp",
             results_dir="results/hpo_tmp",
         )
 
-        # Different seed per trial to reduce variance correlation
         set_seed(seed + trial.number)
         model = build_model(model_name, num_classes=config.num_classes, pretrained=True)
         trainer, _ = build_trainer(model, f"{model_name}_t{trial.number}", config)
         return trainer.fit_hpo(trial)
 
     return objective
-
 
 def run_study(
     model_name: str,
@@ -94,7 +75,6 @@ def run_study(
     seed: int,
     db_path: str = "results/optuna.db",
 ) -> optuna.Study:
-    """Create (or resume) an Optuna study and run optimization."""
     Path("results").mkdir(parents=True, exist_ok=True)
 
     study = optuna.create_study(
@@ -126,13 +106,12 @@ def run_study(
         make_objective(model_name, data_root, hpo_epochs, seed),
         n_trials=n_trials,
         callbacks=[_log_callback],
-        catch=(Exception,),  # mark failed trials as FAILED and continue, don't crash study
+        catch=(Exception,),
     )
 
     print(f"\n[HPO_DONE] best_value={study.best_value:.4f}", flush=True)
     print(f"[BEST_PARAMS] {json.dumps(study.best_params)}", flush=True)
     return study
-
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description="Optuna HPO for QuantumCafe-CR classical models")

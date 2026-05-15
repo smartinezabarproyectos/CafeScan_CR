@@ -1,21 +1,16 @@
 from __future__ import annotations
 
-
 class QuantumCafeError(Exception):
-    """Base exception for the project."""
-
+    pass
 
 class DatasetNotFoundError(QuantumCafeError):
-    """Raised when a dataset directory or file is missing."""
-
+    pass
 
 class UnknownLabelError(QuantumCafeError):
-    """Raised when a folder/label name cannot be mapped to a unified class."""
-
+    pass
 
 class ModelNotFoundError(QuantumCafeError):
-    """Raised when a model name is not in the registry."""
-
+    pass
 
 class CheckpointNotFoundError(QuantumCafeError):
-    """Raised when a checkpoint file does not exist."""
+    pass

@@ -1,10 +1,3 @@
-"""QuantumCafe-CR Training Dashboard
-
-Mini GUI for launching model training and Optuna HPO.
-
-Usage:
-    streamlit run scripts/training_ui.py
-"""
 from __future__ import annotations
 
 import json
@@ -27,11 +20,6 @@ if not Path(PYTHON).exists():
 
 ALL_MODELS = list_models()
 
-
-# ---------------------------------------------------------------------------
-# Page config
-# ---------------------------------------------------------------------------
-
 st.set_page_config(
     page_title="QuantumCafe-CR — Training Dashboard",
     page_icon="☕",
@@ -40,10 +28,6 @@ st.set_page_config(
 
 st.title("☕ QuantumCafe-CR — Training Dashboard")
 st.caption("Coffee Leaf Disease Detection — DL Model Comparison")
-
-# ---------------------------------------------------------------------------
-# Sidebar
-# ---------------------------------------------------------------------------
 
 with st.sidebar:
     st.header("⚙️ Global Config")
@@ -55,10 +39,6 @@ with st.sidebar:
     st.markdown(", ".join(f"`{m}`" for m in ALL_MODELS))
     st.divider()
     st.caption("Logs stream live while training runs.")
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def _stream_proc(cmd: list[str], log_area, parse_hpo: bool = False) -> tuple[int, list[str], dict]:
     env = os.environ.copy()
@@ -113,7 +93,6 @@ def _stream_proc(cmd: list[str], log_area, parse_hpo: bool = False) -> tuple[int
     proc.wait()
     return proc.returncode, lines, hpo_info
 
-
 def _load_all_hpo_from_db(db_path_str: str) -> dict[str, dict]:
     results = {}
     try:
@@ -149,29 +128,15 @@ def _load_all_hpo_from_db(db_path_str: str) -> dict[str, dict]:
         pass
     return results
 
-
-# ---------------------------------------------------------------------------
-# Session state
-# ---------------------------------------------------------------------------
-
 if "hpo_results" not in st.session_state:
     st.session_state.hpo_results = {}
 
 if "hpo_db_loaded" not in st.session_state:
     st.session_state.hpo_db_loaded = False
 
-# ---------------------------------------------------------------------------
-# Tabs
-# ---------------------------------------------------------------------------
-
 tab_train, tab_hpo, tab_results, tab_all = st.tabs(
     ["🚂 Training", "🔬 HPO (Optuna)", "📊 Results", "🌙 Run All"]
 )
-
-
-# ===========================================================================
-# Tab 1 — Standard Training
-# ===========================================================================
 
 with tab_train:
     left, right = st.columns([1, 2])
@@ -230,11 +195,6 @@ with tab_train:
             st.balloons()
         else:
             st.error(f"❌ Training failed (exit code {rc}). Check logs above.")
-
-
-# ===========================================================================
-# Tab 2 — HPO (Optuna)
-# ===========================================================================
 
 with tab_hpo:
     st.info(
@@ -367,11 +327,6 @@ with tab_hpo:
             else:
                 st.error(f"❌ Fallo (exit {rc2}).")
 
-
-# ===========================================================================
-# Tab 3 — Results
-# ===========================================================================
-
 with tab_results:
     if st.button("🔄 Refresh", key="btn_refresh"):
         st.rerun()
@@ -428,11 +383,6 @@ with tab_results:
                 st.subheader(title)
                 st.image(str(fig_path), use_column_width=True)
 
-
-# ===========================================================================
-# Tab 4 — Run All
-# ===========================================================================
-
 def _get_params_for(model: str, fallback_lr, fallback_wd, fallback_bs, fallback_ls) -> dict:
     saved = st.session_state.hpo_results.get(model)
     if saved and saved.get("best_params"):
@@ -446,7 +396,6 @@ def _get_params_for(model: str, fallback_lr, fallback_wd, fallback_bs, fallback_
         "batch_size": fallback_bs, "label_smoothing": fallback_ls,
         "_source": "default",
     }
-
 
 with tab_all:
     st.subheader("Pipeline completo: HPO pendientes → Entrenar todo")
@@ -467,7 +416,6 @@ with tab_all:
                 st.session_state.hpo_results[m] = info
             st.rerun()
 
-    # ── Estado HPO ────────────────────────────────────────────────────────────
     st.markdown("### Estado del HPO por modelo")
     status_rows, pending_models = [], []
     for m in ALL_MODELS:
@@ -514,7 +462,6 @@ with tab_all:
 
     st.divider()
 
-    # ── Config entrenamiento ──────────────────────────────────────────────────
     st.markdown("### Config entrenamiento")
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -528,7 +475,6 @@ with tab_all:
         fallback_bs = st.select_slider("Batch (fallback)", [32, 64, 128], value=64, key="all_bs")
         fallback_ls = st.slider("Label Smoothing (fallback)", 0.0, 0.2, 0.1, step=0.01, key="all_ls")
 
-    # ── Estado de entrenamiento ───────────────────────────────────────────────
     st.markdown("### Estado del entrenamiento por modelo")
 
     def _training_status(model: str) -> tuple[str, str]:

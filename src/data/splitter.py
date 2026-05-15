@@ -12,17 +12,13 @@ from .jmuben import JMuBENDataset
 from .label_mapper import UNIFIED_LABELS
 from .transforms import train_transforms, val_transforms, test_transforms
 
-
-# dataset source tag — kept alongside each sample for drift analysis
 DATASET_TAGS = {
     "bracol": 0,
     "jmuben": 1,
     "jmuben2": 2,
 }
 
-
 class TaggedRecord:
-    """Lightweight container: (path, label_idx, dataset_tag)."""
     __slots__ = ("path", "label", "tag")
 
     def __init__(self, path: Path, label: int, tag: int):
@@ -30,9 +26,7 @@ class TaggedRecord:
         self.label = label
         self.tag = tag
 
-
 _RECORDS_CACHE: dict[str, list[TaggedRecord]] = {}
-
 
 def _collect_records(data_root: str | Path) -> list[TaggedRecord]:
     key = str(Path(data_root).resolve())
@@ -58,9 +52,7 @@ def _collect_records(data_root: str | Path) -> list[TaggedRecord]:
     _RECORDS_CACHE[key] = valid
     return valid
 
-
 def _filter_valid(records: list[TaggedRecord]) -> list[TaggedRecord]:
-    """Remove records whose image files cannot be opened by PIL."""
     from PIL import Image, ImageFile, UnidentifiedImageError
     ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -80,25 +72,17 @@ def _filter_valid(records: list[TaggedRecord]) -> list[TaggedRecord]:
 
     return valid
 
-
 def stratified_split(
     data_root: str | Path,
     ratios: tuple[float, float, float] = (0.70, 0.15, 0.15),
     seed: int = 42,
     size: int = 224,
 ) -> tuple[Dataset, Dataset, Dataset]:
-    """Return train / val / test Subsets stratified by (class, dataset_source).
-
-    Stratifying on (class × source) prevents a single dataset from dominating
-    any split — critical here because healthy/miner come only from JMuBEN2
-    while rust/cercospora/phoma come only from JMuBEN+BRACOL.
-    """
     assert abs(sum(ratios) - 1.0) < 1e-6, "Ratios must sum to 1"
     rng = np.random.default_rng(seed)
 
     records = _collect_records(data_root)
 
-    # Group by (label, dataset_tag)
     groups: dict[tuple[int, int], list[int]] = defaultdict(list)
     for i, rec in enumerate(records):
         groups[(rec.label, rec.tag)].append(i)
@@ -120,7 +104,6 @@ def stratified_split(
 
     return train_ds, val_ds, test_ds
 
-
 def split_summary(ds: "_IndexedDataset") -> dict:
     from collections import Counter
     label_counts = Counter(ds.records[i].label for i in ds.indices)
@@ -131,9 +114,7 @@ def split_summary(ds: "_IndexedDataset") -> dict:
         "by_source": {k: v for k, v in sorted(tag_counts.items())},
     }
 
-
 class _IndexedDataset(Dataset):
-    """Dataset backed by a list of TaggedRecords + an index subset."""
 
     def __init__(self, records: list[TaggedRecord], indices: list[int], transform):
         self.records = records

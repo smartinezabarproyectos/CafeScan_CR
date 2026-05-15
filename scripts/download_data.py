@@ -1,12 +1,3 @@
-"""Dataset download helper.
-
-Usage:
-    python scripts/download_data.py --dataset bracol --out data/raw
-    python scripts/download_data.py --dataset all --out data/raw
-
-Datasets are hosted on Mendeley Data and require manual download or API token.
-This script provides direct download URLs and validates the expected structure.
-"""
 from __future__ import annotations
 
 import argparse
@@ -41,7 +32,6 @@ DATASETS = {
     },
 }
 
-
 def validate(name: str, out: Path) -> bool:
     info = DATASETS[name]
     root = out / name
@@ -52,7 +42,6 @@ def validate(name: str, out: Path) -> bool:
     status = "OK" if ok else "MISSING"
     print(f"  {name}: {status}")
     return ok
-
 
 def main():
     p = argparse.ArgumentParser()
@@ -74,7 +63,6 @@ def main():
             print(f"  URL  : {info['url']}")
             print(f"  Note : {info['note']}")
             validate(name, out)
-
 
 if __name__ == "__main__":
     main()
