@@ -27,7 +27,8 @@ results/checkpoints/*.pt
 .ipynb_checkpoints/
 notebooks/.ipynb_checkpoints/
 
-# Word temp files
+# Word / documentacion — no se versiona
+*.docx
 ~$*.docx
 
 # OS
