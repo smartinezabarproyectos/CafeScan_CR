@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Data — datasets son grandes, no se versionan
+data/raw/
+data/processed/
+
+# Claude Code internal files
+.claude/
+
+# Model checkpoints — binaries grandes
+results/checkpoints/*.pt
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# Word temp files
+~$*.docx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Optuna / bases de datos
+results/hpo_studies.db
+results/optuna.db
+*.db
+
+# Logs
+*.log
