@@ -31,16 +31,6 @@ notebooks/.ipynb_checkpoints/
 *.docx
 ~$*.docx
 
-# Paper LaTeX source — solo el PDF compilado se versiona
-paper/*.tex
-paper/*.bib
-paper/*.aux
-paper/*.log
-paper/*.out
-paper/*.blg
-paper/*.bbl
-paper/*.synctex.gz
-
 # OS
 .DS_Store
 Thumbs.db
